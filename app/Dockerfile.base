@@ -1,0 +1,25 @@
+#
+# Build image
+#
+
+FROM python:3.9-slim-bullseye AS builder
+
+WORKDIR /app
+COPY . .
+
+RUN apt update -y && apt upgrade -y && apt install curl -y
+RUN curl -sSL https://install.python-poetry.org | POETRY_HOME=/opt/poetry python -
+ENV PATH=/opt/poetry/bin:$PATH
+RUN poetry config virtualenvs.create false 
+RUN poetry install --only main
+RUN poetry export -f requirements.txt >> requirements.txt
+
+#
+# Prod image
+#
+
+FROM python:3.9-slim-bullseye AS runtime
+
+WORKDIR /app
+COPY --from=builder /app/requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
